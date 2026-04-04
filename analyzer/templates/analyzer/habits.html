@@ -1,0 +1,101 @@
+{% extends 'analyzer/base.html' %}
+{% block title %}Habits — ProcrastiTrack{% endblock %}
+
+{% block content %}
+<div class="page-header slide-up">
+    <h1><i class="bi bi-calendar2-check-fill text-gradient"></i> Habit Tracker</h1>
+    <p>Build consistent habits and track your streaks</p>
+</div>
+
+<div class="row g-4">
+    <!-- Add Habit Form -->
+    <div class="col-lg-4">
+        <div class="glass-card-static slide-up">
+            <h3 class="section-title"><i class="bi bi-plus-circle-fill"></i> New Habit</h3>
+            <form method="POST" id="habit-form">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label text-secondary" style="font-size:13px;font-weight:600;">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary w-100" id="submit-habit">
+                    <i class="bi bi-calendar-plus"></i> Create Habit
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Habit Cards -->
+    <div class="col-lg-8">
+        <h3 class="section-title slide-up"><i class="bi bi-fire"></i> Active Habits</h3>
+        {% if habits %}
+        <div class="row g-3">
+            {% for habit in habits %}
+            <div class="col-md-6">
+                <div class="habit-card slide-up" id="habit-{{ habit.pk }}">
+                    <span class="streak-badge">🔥 {{ habit.current_streak }} days</span>
+                    <div class="habit-name">{{ habit.name }}</div>
+                    <div class="habit-desc">{{ habit.description|default:"No description" }}</div>
+                    
+                    <div class="d-flex align-items-center gap-2 mb-2" style="font-size:12px;color:var(--text-secondary);">
+                        <span><i class="bi bi-arrow-repeat"></i> {{ habit.get_target_frequency_display }}</span>
+                        <span>·</span>
+                        <span><i class="bi bi-trophy"></i> Best: {{ habit.longest_streak }}d</span>
+                        <span>·</span>
+                        <span><i class="bi bi-check-all"></i> {{ habit.total_completions }}x</span>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between" style="font-size:12px;">
+                        <span style="color:var(--text-muted);">Stability: {{ habit.stability_score }}%</span>
+                    </div>
+                    <div class="stability-bar">
+                        <div class="fill" style="width:{{ habit.stability_score }}%;"></div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="btn btn-success-custom btn-sm flex-grow-1 complete-habit-btn"
+                                data-habit-id="{{ habit.pk }}" id="complete-habit-{{ habit.pk }}">
+                            <i class="bi bi-check-lg"></i> Done Today
+                        </button>
+                        <a href="{% url 'delete_habit' habit.pk %}" class="btn btn-sm btn-outline-danger"
+                           style="border-radius:10px;" onclick="return confirm('Archive this habit?')">
+                            <i class="bi bi-archive"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="glass-card-static">
+            <div class="empty-state">
+                <div class="empty-icon"><i class="bi bi-calendar2-check"></i></div>
+                <h3>No habits yet</h3>
+                <p>Create your first habit to start building consistency!</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).on('click', '.complete-habit-btn', function() {
+        var btn = $(this);
+        var habitId = btn.data('habit-id');
+        $.get('/habits/complete/' + habitId + '/', function(data) {
+            if (data.status === 'success') {
+                var card = $('#habit-' + habitId);
+                card.find('.streak-badge').text('🔥 ' + data.streak + ' days');
+                btn.text('✅ Completed!').prop('disabled', true).removeClass('btn-success-custom').addClass('btn-outline-success');
+                card.find('.stability-bar .fill').css('width', data.stability + '%');
+            } else if (data.status === 'already_done') {
+                btn.text('✅ Already done today').prop('disabled', true).removeClass('btn-success-custom').addClass('btn-outline-secondary');
+            }
+        });
+    });
+</script>
+{% endblock %}

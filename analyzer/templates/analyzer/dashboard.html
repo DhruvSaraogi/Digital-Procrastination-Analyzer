@@ -1,0 +1,251 @@
+{% extends 'analyzer/base.html' %}
+{% load analyzer_extras %}
+{% block title %}Dashboard — ProcrastiTrack{% endblock %}
+
+{% block content %}
+<div class="page-header slide-up">
+    <h1>Dashboard</h1>
+    <p>Welcome back, <strong>{{ user.username }}</strong> — here's your weekly overview</p>
+</div>
+
+<!-- Stat Cards Row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card purple slide-up stagger-1">
+            <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+            <div class="stat-value">{{ total_study_hours }}</div>
+            <div class="stat-label">Study Hours (This Week)</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card green slide-up stagger-2">
+            <div class="stat-icon"><i class="bi bi-bullseye"></i></div>
+            <div class="stat-value">{{ avg_focus }}<small>/10</small></div>
+            <div class="stat-label">Avg Focus Score</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card red slide-up stagger-3">
+            <div class="stat-icon"><i class="bi bi-exclamation-diamond-fill"></i></div>
+            <div class="stat-value">{{ total_distractions }}</div>
+            <div class="stat-label">Distractions Logged</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card yellow slide-up stagger-4">
+            <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+            <div class="stat-value">{{ completed_tasks }}<small>/{{ active_tasks|add:completed_tasks }}</small></div>
+            <div class="stat-label">Tasks Completed</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <!-- Study Duration Chart -->
+    <div class="col-lg-8">
+        <div class="glass-card-static slide-up stagger-2">
+            <h3 class="section-title"><i class="bi bi-graph-up"></i> Study Hours & Focus Trend</h3>
+            <div class="chart-container">
+                <canvas id="studyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Productivity Score Ring -->
+    <div class="col-lg-4">
+        <div class="glass-card-static slide-up stagger-3 text-center">
+            <h3 class="section-title justify-content-center"><i class="bi bi-speedometer2"></i> Today's Score</h3>
+            <div class="productivity-ring">
+                <svg viewBox="0 0 120 120">
+                    <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+                    <circle class="ring-fill" cx="60" cy="60" r="52"
+                        stroke="url(#scoreGradient)"
+                        stroke-dasharray="326.73"
+                        stroke-dashoffset="{{ productivity_ring_offset|default:'326.73' }}"
+                        id="score-ring">
+                    </circle>
+                    <defs>
+                        <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#6c5ce7"/>
+                            <stop offset="100%" style="stop-color:#00cec9"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="ring-value text-gradient">{{ productivity_score }}</div>
+            </div>
+            <p class="text-secondary mb-0" style="font-size:13px;">Productivity Score (0–100)</p>
+        </div>
+    </div>
+</div>
+
+<!-- Distraction Chart + Alerts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="glass-card-static slide-up">
+            <h3 class="section-title"><i class="bi bi-pie-chart-fill"></i> Distraction Breakdown</h3>
+            <div class="chart-container-sm">
+                <canvas id="distractionChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="glass-card-static slide-up">
+            <h3 class="section-title"><i class="bi bi-fire"></i> Habit Streaks</h3>
+            {% if habits %}
+                {% for habit in habits %}
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <div style="font-size:14px;font-weight:600;">{{ habit.name }}</div>
+                        <div style="font-size:12px;color:var(--text-secondary);">{{ habit.get_target_frequency_display }}</div>
+                    </div>
+                    <div class="text-end">
+                        <span style="font-size:20px;font-weight:800;color:var(--accent-success);">{{ habit.current_streak }}</span>
+                        <span style="font-size:11px;color:var(--text-muted);">days</span>
+                    </div>
+                </div>
+                <div class="stability-bar mb-2">
+                    <div class="fill" style="width:{{ habit.stability_score }}%;"></div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state" style="padding:30px;">
+                    <div class="empty-icon"><i class="bi bi-calendar2-check"></i></div>
+                    <p>No habits tracked yet</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-lg-3">
+        <div class="glass-card-static slide-up">
+            <h3 class="section-title"><i class="bi bi-bell-fill"></i> Alerts</h3>
+            {% if unread_alerts %}
+                {% for alert in unread_alerts %}
+                <div class="alert-item" style="padding:12px;margin-bottom:8px;">
+                    <span class="alert-icon text-{{ alert.severity }}">
+                        <i class="{{ alert.severity|get_severity_icon }}"></i>
+                    </span>
+                    <div>
+                        <div class="alert-title" style="font-size:12px;">{{ alert.title|truncatechars:40 }}</div>
+                        <div class="alert-time">{{ alert.created_at|timesince }} ago</div>
+                    </div>
+                </div>
+                {% endfor %}
+                <a href="{% url 'alerts' %}" class="btn btn-sm btn-outline-secondary w-100 mt-2" style="border-radius:10px;">View All</a>
+            {% else %}
+                <div class="empty-state" style="padding:30px;">
+                    <div class="empty-icon"><i class="bi bi-bell-slash"></i></div>
+                    <p>No new alerts</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animate productivity ring
+    const score = {{ productivity_score }};
+    const circumference = 326.73;
+    const offset = circumference - (score / 100) * circumference;
+    document.getElementById('score-ring').style.strokeDashoffset = offset;
+
+    // Study Hours + Focus Chart (dual axis)
+    const studyCtx = document.getElementById('studyChart').getContext('2d');
+    new Chart(studyCtx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_dates|safe }},
+            datasets: [
+                {
+                    label: 'Study Hours',
+                    data: {{ chart_study|safe }},
+                    borderColor: '#6c5ce7',
+                    backgroundColor: 'rgba(108, 92, 231, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#6c5ce7',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'Focus Score',
+                    data: {{ chart_focus|safe }},
+                    borderColor: '#00cec9',
+                    backgroundColor: 'rgba(0, 206, 201, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#00cec9',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    yAxisID: 'y1',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: '#8b8ba3', font: { family: 'Inter', size: 12 } } }
+            },
+            scales: {
+                x: { ticks: { color: '#5a5a7a', font: { family: 'Inter' } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+                y: {
+                    type: 'linear', position: 'left',
+                    ticks: { color: '#6c5ce7', font: { family: 'Inter' } },
+                    grid: { color: 'rgba(255,255,255,0.03)' },
+                    title: { display: true, text: 'Hours', color: '#6c5ce7' }
+                },
+                y1: {
+                    type: 'linear', position: 'right',
+                    min: 0, max: 10,
+                    ticks: { color: '#00cec9', font: { family: 'Inter' } },
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Focus', color: '#00cec9' }
+                }
+            }
+        }
+    });
+
+    // Distraction Doughnut
+    const distLabels = {{ distraction_labels|safe }};
+    const distValues = {{ distraction_values|safe }};
+    if (distLabels.length > 0) {
+        const distCtx = document.getElementById('distractionChart').getContext('2d');
+        new Chart(distCtx, {
+            type: 'doughnut',
+            data: {
+                labels: distLabels,
+                datasets: [{
+                    data: distValues,
+                    backgroundColor: [
+                        '#6c5ce7', '#00cec9', '#ff6b6b', '#fdcb6e', '#0984e3',
+                        '#e84393', '#00b894', '#e17055', '#636e72', '#a29bfe'
+                    ],
+                    borderColor: 'transparent',
+                    borderWidth: 2,
+                    hoverOffset: 8,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#8b8ba3', font: { family: 'Inter', size: 11 }, padding: 12, usePointStyle: true }
+                    }
+                }
+            }
+        });
+    } else {
+        document.getElementById('distractionChart').parentNode.innerHTML = '<div class="empty-state" style="padding:40px;"><div class="empty-icon"><i class="bi bi-pie-chart"></i></div><p>No distraction data yet</p></div>';
+    }
+</script>
+{% endblock %}

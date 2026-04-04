@@ -1,0 +1,56 @@
+{% extends 'analyzer/base.html' %}
+{% load analyzer_extras %}
+{% block title %}Alerts — ProcrastiTrack{% endblock %}
+
+{% block content %}
+<div class="page-header slide-up">
+    <h1><i class="bi bi-bell-fill text-gradient"></i> Alerts & Notifications</h1>
+    <p>Stay on top of your streaks, deadlines, and focus levels</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        {% if alerts %}
+            {% for alert in alerts %}
+            <div class="alert-item slide-up {% if not alert.is_read %}{% endif %}" id="alert-{{ alert.pk }}"
+                 style="animation-delay: {{ forloop.counter0 }}50ms; {% if not alert.is_read %}border-left: 3px solid {% if alert.severity == 'success' %}var(--accent-success){% elif alert.severity == 'warning' %}var(--accent-warning){% elif alert.severity == 'danger' %}var(--accent-danger){% else %}var(--accent-info){% endif %};{% endif %}">
+                <span class="alert-icon text-{{ alert.severity }}">
+                    <i class="{{ alert.severity|get_severity_icon }}"></i>
+                </span>
+                <div style="flex:1;">
+                    <div class="alert-title">{{ alert.title }}</div>
+                    <div class="alert-message">{{ alert.message }}</div>
+                    <div class="alert-time">{{ alert.created_at|timesince }} ago</div>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary dismiss-alert-btn" data-alert-id="{{ alert.pk }}"
+                        style="border-radius:8px;flex-shrink:0;" title="Dismiss" id="dismiss-{{ alert.pk }}">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="glass-card-static">
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="bi bi-bell-slash"></i></div>
+                    <h3>No alerts</h3>
+                    <p>You're all caught up! Alerts will appear here when there's something important.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).on('click', '.dismiss-alert-btn', function() {
+        var alertId = $(this).data('alert-id');
+        var item = $('#alert-' + alertId);
+        $.get('/alerts/dismiss/' + alertId + '/', function(data) {
+            if (data.status === 'success') {
+                item.slideUp(300, function() { $(this).remove(); });
+            }
+        });
+    });
+</script>
+{% endblock %}
