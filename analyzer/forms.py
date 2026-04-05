@@ -86,7 +86,7 @@ class DistractionForm(forms.ModelForm):
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['session'].queryset = StudySession.objects.filter(user=user).order_by('-start_time')[:20]
+        self.fields['session'].queryset = StudySession.objects.filter(user=user).order_by('-start_time')
         self.fields['session'].required = False
 
 

@@ -90,10 +90,10 @@
             if (data.status === 'success') {
                 var card = $('#habit-' + habitId);
                 card.find('.streak-badge').text('🔥 ' + data.streak + ' days');
-                btn.text('✅ Completed!').prop('disabled', true).removeClass('btn-success-custom').addClass('btn-outline-success');
+                btn.text('Completed!').prop('disabled', true).removeClass('btn-success-custom').addClass('btn-outline-success');
                 card.find('.stability-bar .fill').css('width', data.stability + '%');
             } else if (data.status === 'already_done') {
-                btn.text('✅ Already done today').prop('disabled', true).removeClass('btn-success-custom').addClass('btn-outline-secondary');
+                btn.text(' Already done today').prop('disabled', true).removeClass('btn-success-custom').addClass('btn-outline-secondary');
             }
         });
     });
