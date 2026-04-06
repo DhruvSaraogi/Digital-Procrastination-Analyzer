@@ -1,9 +1,4 @@
-"""
-Rule-Based Procrastination Detection & Suggestion Engine
 
-Analyzes user behavior data and generates personalized suggestions
-based on focus patterns, distraction types, habits, and task management.
-"""
 
 from django.utils import timezone
 from django.db.models import Avg, Sum, Count
@@ -11,10 +6,6 @@ from datetime import timedelta
 
 
 def analyze_and_suggest(user):
-    """
-    Main entry point: analyze user's recent behavior and generate suggestions.
-    Returns a list of dicts: {'text': str, 'category': str}
-    """
     from .models import (
         StudySession, DistractionLog, Habit, Task,
         ProductivityMetrics, SuggestionHistory, BehaviorPattern, Alert
@@ -25,21 +16,19 @@ def analyze_and_suggest(user):
     week_ago = now - timedelta(days=7)
     month_ago = now - timedelta(days=30)
 
-    # --- Fetch recent data ---
+
     recent_sessions = StudySession.objects.filter(user=user, start_time__gte=week_ago)
     recent_distractions = DistractionLog.objects.filter(user=user, timestamp__gte=week_ago)
     active_habits = Habit.objects.filter(user=user, is_active=True)
     pending_tasks = Task.objects.filter(user=user).exclude(status='completed')
     month_sessions = StudySession.objects.filter(user=user, start_time__gte=month_ago)
 
-    # --- Rule 1: No recent study sessions ---
     if not recent_sessions.exists():
         suggestions.append({
             'text': "You haven't logged any study sessions this week. Start with just 25 minutes today using the Pomodoro technique — small wins build momentum!",
             'category': 'focus'
         })
 
-    # --- Rule 2: Low average focus score ---
     if recent_sessions.exists():
         avg_focus = recent_sessions.aggregate(avg=Avg('focus_score'))['avg'] or 0
         if avg_focus < 4:
@@ -57,8 +46,6 @@ def analyze_and_suggest(user):
                 'text': f"Excellent focus! Your average score is {avg_focus:.1f}/10. Keep this momentum going. Consider gradually extending your study sessions by 10 minutes.",
                 'category': 'focus'
             })
-
-    # --- Rule 3: High distraction frequency ---
     if recent_distractions.exists():
         distraction_count = recent_distractions.count()
         if distraction_count > 15:
@@ -67,7 +54,6 @@ def analyze_and_suggest(user):
                 'category': 'distraction'
             })
 
-    # --- Rule 4: Top distraction type analysis ---
     if recent_distractions.exists():
         top_distraction = (
             recent_distractions
@@ -99,7 +85,7 @@ def analyze_and_suggest(user):
                 'category': 'distraction'
             })
 
-    # --- Rule 5: Distraction ratio check ---
+
     if recent_sessions.exists() and recent_distractions.exists():
         total_study = sum(s.duration_minutes for s in recent_sessions)
         total_distraction = recent_distractions.aggregate(total=Sum('duration_minutes'))['total'] or 0
@@ -111,7 +97,6 @@ def analyze_and_suggest(user):
                     'category': 'distraction'
                 })
 
-    # --- Rule 6: Habit streak analysis ---
     broken_habits = active_habits.filter(current_streak=0, total_completions__gt=0)
     if broken_habits.exists():
         names = ', '.join(h.name for h in broken_habits[:3])
@@ -120,7 +105,6 @@ def analyze_and_suggest(user):
             'category': 'habit'
         })
 
-    # --- Rule 7: Habit consistency ---
     low_stability = [h for h in active_habits if h.stability_score < 30 and h.total_completions > 0]
     if low_stability:
         suggestions.append({
@@ -128,7 +112,6 @@ def analyze_and_suggest(user):
             'category': 'habit'
         })
 
-    # --- Rule 8: No active habits ---
     if not active_habits.exists():
         suggestions.append({
             'text': "You don't have any active habits tracked. Start with one small daily habit related to your studies — consistency beats intensity.",
@@ -143,21 +126,18 @@ def analyze_and_suggest(user):
             'category': 'task'
         })
 
-    # --- Rule 10: Too many pending tasks ---
     if pending_tasks.count() > 10:
         suggestions.append({
             'text': f"You have {pending_tasks.count()} pending tasks — that's a lot! Use the Eisenhower Matrix: categorize by urgency and importance. Eliminate or delegate non-essential tasks.",
             'category': 'task'
         })
 
-    # --- Rule 11: No tasks at all ---
     if not Task.objects.filter(user=user).exists():
         suggestions.append({
             'text': "You haven't created any tasks yet. Planning your work reduces decision fatigue and procrastination. Add your top 3 priorities for this week.",
             'category': 'task'
         })
 
-    # --- Rule 12: Short study sessions ---
     if recent_sessions.exists():
         avg_duration = sum(s.duration_minutes for s in recent_sessions) / recent_sessions.count()
         if avg_duration < 20:
@@ -166,7 +146,6 @@ def analyze_and_suggest(user):
                 'category': 'schedule'
             })
 
-    # --- Rule 13: Study time distribution ---
     if month_sessions.count() >= 5:
         morning = month_sessions.filter(start_time__hour__lt=12).aggregate(avg=Avg('focus_score'))['avg'] or 0
         afternoon = month_sessions.filter(start_time__hour__gte=12, start_time__hour__lt=17).aggregate(avg=Avg('focus_score'))['avg'] or 0
@@ -182,7 +161,6 @@ def analyze_and_suggest(user):
                 'category': 'schedule'
             })
 
-    # --- Rule 14: Wellness reminder ---
     if recent_sessions.exists():
         total_hours = sum(s.duration_hours for s in recent_sessions)
         if total_hours > 35:
@@ -191,7 +169,6 @@ def analyze_and_suggest(user):
                 'category': 'wellness'
             })
 
-    # --- Rule 15: Improvement detection ---
     metrics = ProductivityMetrics.objects.filter(user=user).order_by('-date')[:14]
     if metrics.count() >= 7:
         recent_avg = sum(m.productivity_score for m in metrics[:7]) / 7
@@ -202,7 +179,6 @@ def analyze_and_suggest(user):
                 'category': 'focus'
             })
 
-    # If no suggestions generated, provide a default
     if not suggestions:
         suggestions.append({
             'text': "Keep logging your study sessions and habits to get personalized insights. The more data you provide, the smarter your suggestions become!",

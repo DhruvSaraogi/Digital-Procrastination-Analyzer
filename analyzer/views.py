@@ -17,7 +17,7 @@ from .forms import RegisterForm, StudySessionForm, DistractionForm, HabitForm, T
 from .suggestion_engine import analyze_and_suggest, compute_daily_metrics, detect_patterns, generate_alerts
 
 
-# ─── AUTH VIEWS ────────────────────────────────────────────
+
 
 def register_view(request):
     if request.user.is_authenticated:
@@ -57,7 +57,6 @@ def logout_view(request):
     return redirect('login')
 
 
-# ─── DASHBOARD ─────────────────────────────────────────────
 
 @login_required
 def dashboard_view(request):
@@ -98,7 +97,6 @@ def dashboard_view(request):
             chart_focus.append(round(metrics.avg_focus_score, 1))
             chart_distraction.append(round(metrics.total_distraction_minutes, 0))
         else:
-            # Compute on the fly
             day_sessions = StudySession.objects.filter(user=user, start_time__date=day)
             day_distractions = DistractionLog.objects.filter(user=user, timestamp__date=day)
             chart_study.append(round(sum(s.duration_hours for s in day_sessions), 1))
@@ -142,8 +140,6 @@ def dashboard_view(request):
     }
     return render(request, 'analyzer/dashboard.html', context)
 
-
-# ─── STUDY SESSIONS ───────────────────────────────────────
 
 @login_required
 def study_sessions_view(request):
@@ -254,8 +250,6 @@ def delete_habit(request, pk):
     return redirect('habits')
 
 
-# ─── TASKS ─────────────────────────────────────────────────
-
 @login_required
 def tasks_view(request):
     if request.method == 'POST':
@@ -295,8 +289,6 @@ def delete_task(request, pk):
     messages.info(request, 'Task deleted.')
     return redirect('tasks')
 
-
-# ─── SUGGESTIONS ───────────────────────────────────────────
 
 @login_required
 def suggestions_view(request):
@@ -339,7 +331,6 @@ def rate_suggestion(request, pk):
     return JsonResponse({'status': 'success'})
 
 
-# ─── ALERTS ────────────────────────────────────────────────
 
 @login_required
 def alerts_view(request):
@@ -358,7 +349,6 @@ def dismiss_alert(request, pk):
     return JsonResponse({'status': 'success'})
 
 
-# ─── ANALYTICS ─────────────────────────────────────────────
 
 @login_required
 def analytics_view(request):
@@ -410,8 +400,6 @@ def analytics_view(request):
     }
     return render(request, 'analyzer/analytics.html', context)
 
-
-# ─── API ENDPOINTS ─────────────────────────────────────────
 
 @login_required
 def api_unread_count(request):
