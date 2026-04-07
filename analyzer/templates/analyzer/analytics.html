@@ -98,11 +98,11 @@
                 {% for p in patterns %}
                 <div class="pattern-card">
                     <span class="pattern-icon">
-                        {% if p.pattern_type == 'peak_focus' %}🎯
-                        {% elif p.pattern_type == 'low_focus' %}😴
-                        {% elif p.pattern_type == 'distraction_trigger' %}⚡
-                        {% elif p.pattern_type == 'productive_habit' %}✅
-                        {% elif p.pattern_type == 'procrastination' %}🔄
+                        {% if p.pattern_type == 'peak_focus' %}
+                        {% elif p.pattern_type == 'low_focus' %}
+                        {% elif p.pattern_type == 'distraction_trigger' %}
+                        {% elif p.pattern_type == 'productive_habit' %}
+                        {% elif p.pattern_type == 'procrastination' %}
                         {% else %}📈{% endif %}
                     </span>
                     <div style="flex:1;">
