@@ -169,15 +169,29 @@ def analyze_and_suggest(user):
                 'category': 'wellness'
             })
 
-    metrics = ProductivityMetrics.objects.filter(user=user).order_by('-date')[:14]
-    if metrics.count() >= 7:
-        recent_avg = sum(m.productivity_score for m in metrics[:7]) / 7
-        older_avg = sum(m.productivity_score for m in metrics[7:14]) / min(metrics.count() - 7, 7)
-        if recent_avg > older_avg * 1.15:
-            suggestions.append({
-                'text': f"Great progress! Your productivity score improved by {((recent_avg/older_avg)-1)*100:.0f}% compared to last week. Keep up the great work!",
-                'category': 'focus'
-            })
+    metrics = list(ProductivityMetrics.objects.filter(user=user).order_by('-date')[:14])
+    if len(metrics) >= 7:
+        recent_window = metrics[:7]
+        older_window = metrics[7:14]
+
+        recent_avg = sum(m.productivity_score for m in recent_window) / len(recent_window)
+
+        # Only compare week-over-week when an older window exists.
+        if older_window:
+            older_avg = sum(m.productivity_score for m in older_window) / len(older_window)
+
+            # Guard against division by zero when older scores are all zero.
+            if older_avg > 0 and recent_avg > older_avg * 1.15:
+                improvement_pct = ((recent_avg / older_avg) - 1) * 100
+                suggestions.append({
+                    'text': f"Great progress! Your productivity score improved by {improvement_pct:.0f}% compared to last week. Keep up the great work!",
+                    'category': 'focus'
+                })
+            elif older_avg == 0 and recent_avg > 0:
+                suggestions.append({
+                    'text': "Great progress! You moved from a low-productivity baseline to consistent positive productivity this week. Keep up the great work!",
+                    'category': 'focus'
+                })
 
     if not suggestions:
         suggestions.append({

@@ -8,18 +8,32 @@
     <p>Personalized tips based on your behavior patterns</p>
 </div>
 
+<style>
+    .suggestion-theme-focus { --suggestion-color: #6c5ce7; --suggestion-bg: rgba(108, 92, 231, 0.15); }
+    .suggestion-theme-distraction { --suggestion-color: #e17055; --suggestion-bg: rgba(225, 112, 85, 0.15); }
+    .suggestion-theme-habit { --suggestion-color: #00b894; --suggestion-bg: rgba(0, 184, 148, 0.15); }
+    .suggestion-theme-task { --suggestion-color: #0984e3; --suggestion-bg: rgba(9, 132, 227, 0.15); }
+    .suggestion-theme-schedule { --suggestion-color: #fdcb6e; --suggestion-bg: rgba(253, 203, 110, 0.2); }
+    .suggestion-theme-wellness { --suggestion-color: #e84393; --suggestion-bg: rgba(232, 67, 147, 0.15); }
+
+    .suggestion-accent { border-left: 4px solid var(--suggestion-color); padding-left: 16px; }
+    .suggestion-icon { color: var(--suggestion-color); }
+    .suggestion-category-badge { background: var(--suggestion-bg); color: var(--suggestion-color); font-size: 11px; }
+    .suggestion-history-icon { color: var(--suggestion-color); font-size: 16px; flex-shrink: 0; }
+</style>
+
 <div class="row g-4">
     <div class="col-lg-8">
         <h3 class="section-title slide-up"><i class="bi bi-stars"></i> Today's Insights</h3>
         {% for s in suggestions %}
-        <div class="suggestion-card slide-up" style="animation-delay: {{ forloop.counter0 }}00ms;">
-            <div style="border-left: 4px solid {{ s.category|get_category_color }}; padding-left: 16px;">
+        <div class="suggestion-card slide-up suggestion-delay suggestion-theme-{{ s.category }}" data-delay-ms="{{ forloop.counter0 }}00">
+            <div class="suggestion-accent">
                 <div class="d-flex align-items-start gap-3">
-                    <span class="suggestion-icon" style="color: {{ s.category|get_category_color }};">
+                    <span class="suggestion-icon">
                         <i class="{{ s.category|get_category_icon }}"></i>
                     </span>
                     <div>
-                        <span class="badge badge-pill mb-2" style="background: {{ s.category|get_category_color }}20; color: {{ s.category|get_category_color }}; font-size:11px;">
+                        <span class="badge badge-pill mb-2 suggestion-category-badge">
                             {{ s.category|upper }}
                         </span>
                         <p class="suggestion-text mb-0">{{ s.text }}</p>
@@ -35,8 +49,8 @@
             <h3 class="section-title"><i class="bi bi-clock-history"></i> History</h3>
             {% if history %}
                 {% for h in history %}
-                <div class="d-flex align-items-start gap-2 mb-3 pb-3" style="border-bottom:1px solid var(--border-glass);">
-                    <span style="color:{{ h.category|get_category_color }};font-size:16px;flex-shrink:0;">
+                <div class="d-flex align-items-start gap-2 mb-3 pb-3 suggestion-theme-{{ h.category }}" style="border-bottom:1px solid var(--border-glass);">
+                    <span class="suggestion-history-icon">
                         <i class="{{ h.category|get_category_icon }}"></i>
                     </span>
                     <div style="flex:1;min-width:0;">
@@ -68,4 +82,13 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelectorAll('.suggestion-delay').forEach((el) => {
+        const delay = Number(el.dataset.delayMs);
+        el.style.animationDelay = Number.isFinite(delay) ? delay + 'ms' : '0ms';
+    });
+</script>
 {% endblock %}
